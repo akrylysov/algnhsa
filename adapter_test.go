@@ -1,0 +1,222 @@
+package algnhsa
+
+import (
+	"net/http"
+	"reflect"
+	"testing"
+
+	"fmt"
+	"github.com/aws/aws-lambda-go/events"
+	"io/ioutil"
+)
+
+func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}) {
+	t.Helper()
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("expected %v; got %v", expected, actual)
+	}
+}
+
+func TestHandleEvent(t *testing.T) {
+	r := http.NewServeMux()
+	r.HandleFunc("/html", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("<html>foo</html>"))
+	})
+	r.HandleFunc("/text", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+	r.HandleFunc("/query-params", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.FormValue("f") + r.FormValue("s") + r.FormValue("unknown")))
+	})
+	r.HandleFunc("/post-body", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				fmt.Fprintf(w, "%v", err)
+			} else {
+				w.Write(body)
+			}
+		}
+	})
+	r.HandleFunc("/form", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.Write([]byte(r.FormValue("f") + r.FormValue("s") + r.FormValue("unknown")))
+		}
+	})
+	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/gif")
+		w.WriteHeader(204)
+	})
+	r.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Foo") == "bar" {
+			w.Header().Set("X-Bar", "baz")
+			w.Write([]byte("ok"))
+		}
+	})
+	testCases := []struct {
+		req                events.APIGatewayProxyRequest
+		resp               events.APIGatewayProxyResponse
+		binaryContentTypes []string
+	}{
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/html",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "<html>foo</html>",
+				Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/text",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "ok",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/query-params",
+				QueryStringParameters: map[string]string{
+					"f":   "foo",
+					"s":   "bar",
+					"xyz": "123",
+				},
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "foobar",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				HTTPMethod: "POST",
+				Path:       "/post-body",
+				Body:       "foobar",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "foobar",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				HTTPMethod:      "POST",
+				Path:            "/post-body",
+				Body:            "Zm9vYmFy",
+				IsBase64Encoded: true,
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "foobar",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				HTTPMethod: "POST",
+				Path:       "/form",
+				Headers: map[string]string{
+					"Content-Type":   "application/x-www-form-urlencoded",
+					"Content-Length": "19",
+				},
+				Body: "f=foo&s=bar&xyz=123",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "foobar",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/status",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 204,
+				Headers:    map[string]string{"Content-Type": "image/gif"},
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/headers",
+				Headers: map[string]string{
+					"X-Foo": "bar",
+				},
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Headers: map[string]string{
+					"Content-Type": "text/plain; charset=utf-8",
+					"X-Bar":        "baz",
+				},
+				Body: "ok",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/text",
+			},
+			binaryContentTypes: []string{"text/plain; charset=utf-8"},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode:      200,
+				Body:            "b2s=",
+				IsBase64Encoded: true,
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/text",
+			},
+			binaryContentTypes: []string{"*/*"},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode:      200,
+				Body:            "b2s=",
+				IsBase64Encoded: true,
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/text",
+			},
+			binaryContentTypes: []string{"text/html; charset=utf-8"},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "ok",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/404",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 404,
+				Body:       "404 page not found\n",
+				Headers: map[string]string{
+					"Content-Type":           "text/plain; charset=utf-8",
+					"X-Content-Type-Options": "nosniff",
+				},
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		req := testCase.req
+		if req.HTTPMethod == "" {
+			req.HTTPMethod = "GET"
+		}
+		expectedResp := testCase.resp
+		if expectedResp.Headers == nil {
+			expectedResp.Headers = map[string]string{"Content-Type": "text/plain; charset=utf-8"}
+		}
+		types := map[string]bool{}
+		for _, contentType := range testCase.binaryContentTypes {
+			types[contentType] = true
+		}
+		resp, err := handleEvent(testCase.req, r, types)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertDeepEqual(t, expectedResp, resp)
+	}
+}
