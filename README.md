@@ -1,4 +1,4 @@
-# algnhsa [![GoDoc](https://godoc.org/github.com/akrylysov/algnhsa?status.svg)](https://godoc.org/github.com/akrylysov/algnhsa)
+# algnhsa [![GoDoc](https://godoc.org/github.com/akrylysov/algnhsa?status.svg)](https://godoc.org/github.com/akrylysov/algnhsa) [![Build Status](https://travis-ci.org/akrylysov/algnhsa.svg?branch=master)](https://travis-ci.org/akrylysov/algnhsa)
 
 algnhsa is an AWS Lambda Go `net/http` server adapter.
 
