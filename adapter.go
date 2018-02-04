@@ -1,6 +1,7 @@
 package algnhsa
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -8,8 +9,8 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handleEvent(event events.APIGatewayProxyRequest, handler http.Handler, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
-	r, err := newHTTPRequest(event)
+func handleEvent(ctx context.Context, event events.APIGatewayProxyRequest, handler http.Handler, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
+	r, err := newHTTPRequest(ctx, event)
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
@@ -29,7 +30,7 @@ func ListenAndServe(handler http.Handler, binaryContentTypes []string) {
 	for _, contentType := range binaryContentTypes {
 		types[contentType] = true
 	}
-	lambda.Start(func(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		return handleEvent(event, handler, types)
+	lambda.Start(func(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		return handleEvent(ctx, event, handler, types)
 	})
 }

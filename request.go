@@ -1,6 +1,7 @@
 package algnhsa
 
 import (
+	"context"
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func newHTTPRequest(event events.APIGatewayProxyRequest) (*http.Request, error) {
+func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest) (*http.Request, error) {
 	// Build request URL.
 	params := url.Values{}
 	for k, v := range event.QueryStringParameters {
@@ -41,5 +42,5 @@ func newHTTPRequest(event events.APIGatewayProxyRequest) (*http.Request, error) 
 	// Set remote IP address.
 	r.RemoteAddr = event.RequestContext.Identity.SourceIP
 
-	return r, nil
+	return r.WithContext(newContext(ctx, event)), nil
 }
