@@ -1,13 +1,14 @@
 package algnhsa
 
 import (
+	"context"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"testing"
 
-	"fmt"
 	"github.com/aws/aws-lambda-go/events"
-	"io/ioutil"
 )
 
 func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}) {
@@ -50,6 +51,18 @@ func TestHandleEvent(t *testing.T) {
 	r.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-Foo") == "bar" {
 			w.Header().Set("X-Bar", "baz")
+			w.Write([]byte("ok"))
+		}
+	})
+	r.HandleFunc("/context", func(w http.ResponseWriter, r *http.Request) {
+		expectedProxyReq := events.APIGatewayProxyRequest{
+			Path: "/context",
+			RequestContext: events.APIGatewayProxyRequestContext{
+				AccountID: "foo",
+			},
+		}
+		proxyReq, ok := ProxyRequestFromContext(r.Context())
+		if ok && reflect.DeepEqual(expectedProxyReq, proxyReq) {
 			w.Write([]byte("ok"))
 		}
 	})
@@ -199,6 +212,18 @@ func TestHandleEvent(t *testing.T) {
 				},
 			},
 		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/context",
+				RequestContext: events.APIGatewayProxyRequestContext{
+					AccountID: "foo",
+				},
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "ok",
+			},
+		},
 	}
 	for _, testCase := range testCases {
 		req := testCase.req
@@ -213,7 +238,8 @@ func TestHandleEvent(t *testing.T) {
 		for _, contentType := range testCase.binaryContentTypes {
 			types[contentType] = true
 		}
-		resp, err := handleEvent(testCase.req, r, types)
+		ctx := context.Background()
+		resp, err := handleEvent(ctx, testCase.req, r, types)
 		if err != nil {
 			t.Fatal(err)
 		}
