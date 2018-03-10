@@ -33,4 +33,25 @@ func main() {
 }
 ```
 
+Plug in a third-party HTTP router:
+
+```go
+package main
+
+import (
+    "net/http"
+
+    "github.com/akrylysov/algnhsa"
+    "github.com/go-chi/chi"
+)
+
+func main() {
+    r := chi.NewRouter()
+    r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte("index"))
+    })
+    algnhsa.ListenAndServe(r, nil)
+}
+```
+
 More details at http://artem.krylysov.com/blog/2018/01/18/porting-go-web-applications-to-aws-lambda/.
