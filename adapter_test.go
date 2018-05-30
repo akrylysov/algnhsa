@@ -66,6 +66,9 @@ func TestHandleEvent(t *testing.T) {
 			w.Write([]byte("ok"))
 		}
 	})
+	r.HandleFunc("/hostname", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.Host))
+	})
 	testCases := []struct {
 		req                events.APIGatewayProxyRequest
 		resp               events.APIGatewayProxyResponse
@@ -222,6 +225,21 @@ func TestHandleEvent(t *testing.T) {
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Body:       "ok",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/hostname",
+				Headers: map[string]string{
+					"Host": "bar",
+				},
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Headers: map[string]string{
+					"Content-Type": "text/plain; charset=utf-8",
+				},
+				Body: "bar",
 			},
 		},
 	}
