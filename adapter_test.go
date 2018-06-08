@@ -70,9 +70,9 @@ func TestHandleEvent(t *testing.T) {
 		w.Write([]byte(r.Host))
 	})
 	testCases := []struct {
-		req                events.APIGatewayProxyRequest
-		resp               events.APIGatewayProxyResponse
-		binaryContentTypes []string
+		req  events.APIGatewayProxyRequest
+		opts *Options
+		resp events.APIGatewayProxyResponse
 	}{
 		{
 			req: events.APIGatewayProxyRequest{
@@ -174,7 +174,9 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/text",
 			},
-			binaryContentTypes: []string{"text/plain; charset=utf-8"},
+			opts: &Options{
+				BinaryContentTypes: []string{"text/plain; charset=utf-8"},
+			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode:      200,
 				Body:            "b2s=",
@@ -185,7 +187,9 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/text",
 			},
-			binaryContentTypes: []string{"*/*"},
+			opts: &Options{
+				BinaryContentTypes: []string{"*/*"},
+			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode:      200,
 				Body:            "b2s=",
@@ -196,7 +200,9 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/text",
 			},
-			binaryContentTypes: []string{"text/html; charset=utf-8"},
+			opts: &Options{
+				BinaryContentTypes: []string{"text/html; charset=utf-8"},
+			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Body:       "ok",
@@ -242,6 +248,21 @@ func TestHandleEvent(t *testing.T) {
 				Body: "bar",
 			},
 		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/stage/text",
+				PathParameters: map[string]string{
+					"proxy": "text",
+				},
+			},
+			opts: &Options{
+				UseProxyPath: true,
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "ok",
+			},
+		},
 	}
 	for _, testCase := range testCases {
 		req := testCase.req
@@ -252,12 +273,13 @@ func TestHandleEvent(t *testing.T) {
 		if expectedResp.Headers == nil {
 			expectedResp.Headers = map[string]string{"Content-Type": "text/plain; charset=utf-8"}
 		}
-		types := map[string]bool{}
-		for _, contentType := range testCase.binaryContentTypes {
-			types[contentType] = true
+		opts := testCase.opts
+		if opts == nil {
+			opts = defaultOptions
 		}
+		opts.setBinaryContentTypeMap()
 		ctx := context.Background()
-		resp, err := handleEvent(ctx, testCase.req, r, types)
+		resp, err := handleEvent(ctx, testCase.req, r, opts)
 		if err != nil {
 			t.Fatal(err)
 		}
