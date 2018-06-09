@@ -20,7 +20,7 @@ func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, us
 	}
 	u := url.URL{
 		Host:     event.Headers["Host"],
-		Path:     event.Path,
+		Path:     path.Join("/", event.PathParameters["proxy"]),,
 		RawQuery: params.Encode(),
 	}
 	if useProxyPath {
