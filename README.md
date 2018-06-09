@@ -26,9 +26,17 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "%d", f+s)
 }
 
+func contextHandler(w http.ResponseWriter, r *http.Request) {
+    proxyReq, ok := algnhsa.ProxyRequestFromContext(r.Context())
+    if ok {
+        fmt.Fprint(w, proxyReq.RequestContext.AccountID)
+    }
+}
+
 func main() {
     http.HandleFunc("/", indexHandler)
     http.HandleFunc("/add", addHandler)
+    http.HandleFunc("/context", contextHandler)
     algnhsa.ListenAndServe(http.DefaultServeMux, nil)
 }
 ```
