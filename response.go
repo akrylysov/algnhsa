@@ -10,16 +10,14 @@ import (
 
 const acceptAllContentType = "*/*"
 
-// binaryCase ported from https://github.com/Gi60s/binary-case/blob/b100ba0d63075c28485fd1724d94746f74742107/index.js#L86
+// binaryCase performs binary case switching on alpha characters.
+// Ported from https://github.com/Gi60s/binary-case/blob/b100ba0d63075c28485fd1724d94746f74742107/index.js#L86.
 func binaryCase(s string, n int) string {
+	if n == 0 {
+		return s
+	}
 	inp := []rune(s)
-	var res []rune
-
 	for i, c := range inp {
-		if n == 0 {
-			res = append(res, inp[i:]...)
-			break
-		}
 		if c <= unicode.MaxASCII && unicode.IsUpper(c) {
 			if n&1 > 0 {
 				c += 32
@@ -31,10 +29,9 @@ func binaryCase(s string, n int) string {
 			}
 			n >>= 1
 		}
-		res = append(res, c)
+		inp[i] = c
 	}
-
-	return string(res)
+	return string(inp)
 }
 
 func newAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
@@ -46,7 +43,8 @@ func newAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[
 	// Set headers.
 	respHeaders := map[string]string{}
 	for k, v := range w.HeaderMap {
-		// Workaround for https://forums.aws.amazon.com/thread.jspa?threadID=205782
+		// Workaround for API Gateway not supporting headers with multiple values.
+		// https://forums.aws.amazon.com/thread.jspa?threadID=205782
 		for i, val := range v {
 			respHeaders[binaryCase(k, i)] = val
 		}
