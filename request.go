@@ -20,11 +20,18 @@ func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, us
 	}
 	u := url.URL{
 		Host:     event.Headers["Host"],
-		Path:     event.Path,
 		RawQuery: params.Encode(),
 	}
+	var err error
 	if useProxyPath {
-		u.Path = path.Join("/", event.PathParameters["proxy"])
+		u.RawPath = path.Join("/", event.PathParameters["proxy"])
+		u.Path, err = url.PathUnescape(u.RawPath)
+	} else {
+		u.RawPath = event.Path
+		u.Path, err = url.PathUnescape(u.RawPath)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	// Handle base64 encoded body.
