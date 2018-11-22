@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -68,6 +69,12 @@ func TestHandleEvent(t *testing.T) {
 	})
 	r.HandleFunc("/hostname", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.Host))
+	})
+	r.HandleFunc("/query-params-translated", func(w http.ResponseWriter, r *http.Request) {
+		queryString, err := url.QueryUnescape(r.URL.RawQuery)
+		if err == nil {
+			w.Write([]byte(queryString))
+		}
 	})
 	testCases := []struct {
 		req  events.APIGatewayProxyRequest
@@ -256,11 +263,31 @@ func TestHandleEvent(t *testing.T) {
 				},
 			},
 			opts: &Options{
-				UseProxyPath: true,
+				UseProxyPath:                   true,
+				TranslateQueryStringArrayParam: false,
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Body:       "ok",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/query-params-translated",
+				QueryStringParameters: map[string]string{
+					"providers": "[1,2,3]",
+					"productId": "4995",
+					"colors":    "['green','black','yellow']",
+					"single":    "[IAmSingle]",
+				},
+			},
+			opts: &Options{
+				UseProxyPath:                   false,
+				TranslateQueryStringArrayParam: true,
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "colors='green'&colors='black'&colors='yellow'&productId=4995&providers=1&providers=2&providers=3&single=IAmSingle",
 			},
 		},
 	}

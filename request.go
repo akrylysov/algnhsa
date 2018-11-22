@@ -12,11 +12,23 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, useProxyPath bool) (*http.Request, error) {
+func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, useProxyPath bool, translateQueryStringArrayParam bool) (*http.Request, error) {
 	// Build request URL.
 	params := url.Values{}
 	for k, v := range event.QueryStringParameters {
-		params.Set(k, v)
+		if translateQueryStringArrayParam {
+			if strings.Contains(v, "[") {
+				r := strings.NewReplacer("[", "", "]", "")
+				tmp := strings.Split(r.Replace(v), ",")
+				for _, t := range tmp {
+					params.Add(k, t)
+				}
+			} else {
+				params.Set(k, v)
+			}
+		} else {
+			params.Set(k, v)
+		}
 	}
 	u := url.URL{
 		Host:     event.Headers["Host"],

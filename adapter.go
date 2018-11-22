@@ -10,7 +10,7 @@ import (
 )
 
 func handleEvent(ctx context.Context, event events.APIGatewayProxyRequest, handler http.Handler, opts *Options) (events.APIGatewayProxyResponse, error) {
-	r, err := newHTTPRequest(ctx, event, opts.UseProxyPath)
+	r, err := newHTTPRequest(ctx, event, opts.UseProxyPath, opts.TranslateQueryStringArrayParam)
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
