@@ -11,10 +11,10 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}) {
+func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}, testCase interface{}) {
 	t.Helper()
 	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("expected %v; got %v", expected, actual)
+		t.Fatalf("expected %v; got %v; test case: %v", expected, actual, testCase)
 	}
 }
 
@@ -27,7 +27,8 @@ func TestHandleEvent(t *testing.T) {
 		w.Write([]byte("ok"))
 	})
 	r.HandleFunc("/query-params", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("f") + r.FormValue("s") + r.FormValue("unknown")))
+		r.ParseForm()
+		fmt.Fprintf(w, "a=%s, b=%s, c=%s, unknown=%v", r.Form["a"], r.Form["b"], r.Form["c"], r.Form["unknown"])
 	})
 	r.HandleFunc("/post-body", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
@@ -49,7 +50,7 @@ func TestHandleEvent(t *testing.T) {
 		w.WriteHeader(204)
 	})
 	r.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Foo") == "bar" {
+		if r.Header.Get("X-A") == "1" && reflect.DeepEqual(r.Header["X-B"], []string{"21", "22"}) {
 			w.Header().Set("X-Bar", "baz")
 			w.Write([]byte("ok"))
 		}
@@ -97,14 +98,17 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/query-params",
 				QueryStringParameters: map[string]string{
-					"f":   "foo",
-					"s":   "bar",
-					"xyz": "123",
+					"a": "1",
+					"b": "",
+				},
+				MultiValueQueryStringParameters: map[string][]string{
+					"b": {"2"},
+					"c": {"31", "32", "33"},
 				},
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
-				Body:       "foobar",
+				Body:       "a=[1], b=[2], c=[31 32 33], unknown=[]",
 			},
 		},
 		{
@@ -158,7 +162,11 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/headers",
 				Headers: map[string]string{
-					"X-Foo": "bar",
+					"X-a": "1",
+					"x-b": "2",
+				},
+				MultiValueHeaders: map[string][]string{
+					"x-B": {"21", "22"},
 				},
 			},
 			resp: events.APIGatewayProxyResponse{
@@ -283,6 +291,6 @@ func TestHandleEvent(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertDeepEqual(t, expectedResp, resp)
+		assertDeepEqual(t, expectedResp, resp, testCase)
 	}
 }
