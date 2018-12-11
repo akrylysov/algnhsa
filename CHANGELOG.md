@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9] - 2018-12-10
+### Added
+- Support multi-value query string parameters and headers in requests.
+
 ## [0.8] - 2018-07-29
 ### Added
 - Workaround for API Gateway not supporting headers with multiple values.
