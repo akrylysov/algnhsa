@@ -63,3 +63,5 @@ func main() {
 ```
 
 More details at http://artem.krylysov.com/blog/2018/01/18/porting-go-web-applications-to-aws-lambda/.
+
+Note: algnhsa requires [aws-lambda-go](https://github.com/aws/aws-lambda-go) version 1.8.0 or higher.

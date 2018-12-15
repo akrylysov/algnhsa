@@ -18,6 +18,9 @@ func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, us
 	for k, v := range event.QueryStringParameters {
 		params.Set(k, v)
 	}
+	for k, vals := range event.MultiValueQueryStringParameters {
+		params[k] = vals
+	}
 	u := url.URL{
 		Host:     event.Headers["Host"],
 		Path:     event.Path,
@@ -40,8 +43,15 @@ func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, us
 	}
 
 	// Set headers.
+	// https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
+	// If you specify values for both headers and multiValueHeaders, API Gateway merges them into a single list.
+	// If the same key-value pair is specified in both, only the values from multiValueHeaders will appear
+	// the merged list.
 	for k, v := range event.Headers {
 		r.Header.Set(k, v)
+	}
+	for k, vals := range event.MultiValueHeaders {
+		r.Header[http.CanonicalHeaderKey(k)] = vals
 	}
 
 	// Set remote IP address.
