@@ -57,5 +57,8 @@ func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, us
 	// Set remote IP address.
 	r.RemoteAddr = event.RequestContext.Identity.SourceIP
 
+	// Set request URI
+	r.RequestURI = u.RequestURI()
+
 	return r.WithContext(newContext(ctx, event)), nil
 }

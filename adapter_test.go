@@ -70,6 +70,9 @@ func TestHandleEvent(t *testing.T) {
 	r.HandleFunc("/hostname", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.Host))
 	})
+	r.HandleFunc("/requesturi", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.RequestURI))
+	})
 	testCases := []struct {
 		req  events.APIGatewayProxyRequest
 		opts *Options
@@ -269,6 +272,18 @@ func TestHandleEvent(t *testing.T) {
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Body:       "ok",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/requesturi",
+				QueryStringParameters: map[string]string{
+					"foo": "bar",
+				},
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "/requesturi?foo=bar",
 			},
 		},
 	}
