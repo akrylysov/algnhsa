@@ -30,6 +30,9 @@ func TestHandleEvent(t *testing.T) {
 		r.ParseForm()
 		fmt.Fprintf(w, "a=%s, b=%s, c=%s, unknown=%v", r.Form["a"], r.Form["b"], r.Form["c"], r.Form["unknown"])
 	})
+	r.HandleFunc("/path/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.URL.Path))
+	})
 	r.HandleFunc("/post-body", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
@@ -112,6 +115,15 @@ func TestHandleEvent(t *testing.T) {
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
 				Body:       "a=[1], b=[2], c=[31 32 33], unknown=[]",
+			},
+		},
+		{
+			req: events.APIGatewayProxyRequest{
+				Path: "/path/encode%2Ftest%7C",
+			},
+			resp: events.APIGatewayProxyResponse{
+				StatusCode: 200,
+				Body:       "/path/encode/test|",
 			},
 		},
 		{
