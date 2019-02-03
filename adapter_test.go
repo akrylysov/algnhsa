@@ -55,6 +55,8 @@ func TestHandleEvent(t *testing.T) {
 	r.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-A") == "1" && reflect.DeepEqual(r.Header["X-B"], []string{"21", "22"}) {
 			w.Header().Set("X-Bar", "baz")
+			w.Header().Add("X-y", "1")
+			w.Header().Add("X-Y", "2")
 			w.Write([]byte("ok"))
 		}
 	})
@@ -189,6 +191,7 @@ func TestHandleEvent(t *testing.T) {
 				MultiValueHeaders: map[string][]string{
 					"Content-Type": {"text/plain; charset=utf-8"},
 					"X-Bar":        {"baz"},
+					"X-Y":          {"1", "2"},
 				},
 				Body: "ok",
 			},
