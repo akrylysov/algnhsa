@@ -1,12 +1,18 @@
 # Changelog
 
+## [0.10] - 2019-02-03
+### Changed
+- Set RequestURI on request (@RossHammer).
+- Unescape Path (@RossHammer).
+- Multi-value header support implemented using APIGatewayProxyResponse.MultiValueHeaders.
+
 ## [0.9] - 2018-12-10
 ### Added
 - Support multi-value query string parameters and headers in requests.
 
 ## [0.8] - 2018-07-29
 ### Added
-- Workaround for API Gateway not supporting headers with multiple values.
+- Workaround for API Gateway not supporting headers with multiple values (@mspiegel).
 
 ## [0.7] - 2018-06-08
 ### Added
@@ -14,7 +20,7 @@
 
 ## [0.6] - 2018-05-30
 ### Changed
-- Set Host header for requests.
+- Set Host header for requests (@rvdwijngaard).
 
 ## [0.5] - 2018-02-05
 ### Added
