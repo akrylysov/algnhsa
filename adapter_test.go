@@ -14,7 +14,7 @@ import (
 func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}, testCase interface{}) {
 	t.Helper()
 	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("expected %v; got %v; test case: %v", expected, actual, testCase)
+		t.Fatalf("\nexpected %+v\ngot      %+v\ntest case: %+v", expected, actual, testCase)
 	}
 }
 
@@ -55,6 +55,8 @@ func TestHandleEvent(t *testing.T) {
 	r.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-A") == "1" && reflect.DeepEqual(r.Header["X-B"], []string{"21", "22"}) {
 			w.Header().Set("X-Bar", "baz")
+			w.Header().Add("X-y", "1")
+			w.Header().Add("X-Y", "2")
 			w.Write([]byte("ok"))
 		}
 	})
@@ -86,9 +88,9 @@ func TestHandleEvent(t *testing.T) {
 				Path: "/html",
 			},
 			resp: events.APIGatewayProxyResponse{
-				StatusCode: 200,
-				Body:       "<html>foo</html>",
-				Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
+				StatusCode:        200,
+				Body:              "<html>foo</html>",
+				MultiValueHeaders: map[string][]string{"Content-Type": {"text/html; charset=utf-8"}},
 			},
 		},
 		{
@@ -153,9 +155,9 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				HTTPMethod: "POST",
 				Path:       "/form",
-				Headers: map[string]string{
-					"Content-Type":   "application/x-www-form-urlencoded",
-					"Content-Length": "19",
+				MultiValueHeaders: map[string][]string{
+					"Content-Type":   {"application/x-www-form-urlencoded"},
+					"Content-Length": {"19"},
 				},
 				Body: "f=foo&s=bar&xyz=123",
 			},
@@ -169,8 +171,8 @@ func TestHandleEvent(t *testing.T) {
 				Path: "/status",
 			},
 			resp: events.APIGatewayProxyResponse{
-				StatusCode: 204,
-				Headers:    map[string]string{"Content-Type": "image/gif"},
+				StatusCode:        204,
+				MultiValueHeaders: map[string][]string{"Content-Type": {"image/gif"}},
 			},
 		},
 		{
@@ -186,9 +188,10 @@ func TestHandleEvent(t *testing.T) {
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
-				Headers: map[string]string{
-					"Content-Type": "text/plain; charset=utf-8",
-					"X-Bar":        "baz",
+				MultiValueHeaders: map[string][]string{
+					"Content-Type": {"text/plain; charset=utf-8"},
+					"X-Bar":        {"baz"},
+					"X-Y":          {"1", "2"},
 				},
 				Body: "ok",
 			},
@@ -238,9 +241,9 @@ func TestHandleEvent(t *testing.T) {
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 404,
 				Body:       "404 page not found\n",
-				Headers: map[string]string{
-					"Content-Type":           "text/plain; charset=utf-8",
-					"X-Content-Type-Options": "nosniff",
+				MultiValueHeaders: map[string][]string{
+					"Content-Type":           {"text/plain; charset=utf-8"},
+					"X-Content-Type-Options": {"nosniff"},
 				},
 			},
 		},
@@ -265,8 +268,8 @@ func TestHandleEvent(t *testing.T) {
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
-				Headers: map[string]string{
-					"Content-Type": "text/plain; charset=utf-8",
+				MultiValueHeaders: map[string][]string{
+					"Content-Type": {"text/plain; charset=utf-8"},
 				},
 				Body: "bar",
 			},
@@ -305,8 +308,8 @@ func TestHandleEvent(t *testing.T) {
 			req.HTTPMethod = "GET"
 		}
 		expectedResp := testCase.resp
-		if expectedResp.Headers == nil {
-			expectedResp.Headers = map[string]string{"Content-Type": "text/plain; charset=utf-8"}
+		if expectedResp.MultiValueHeaders == nil {
+			expectedResp.MultiValueHeaders = map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}}
 		}
 		opts := testCase.opts
 		if opts == nil {
