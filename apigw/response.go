@@ -1,4 +1,4 @@
-package algnhsa
+package apigw
 
 import (
 	"encoding/base64"
@@ -9,7 +9,7 @@ import (
 
 const acceptAllContentType = "*/*"
 
-func newAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
+func NewAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
 	event := events.APIGatewayProxyResponse{}
 
 	// Set status code.

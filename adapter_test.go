@@ -2,12 +2,15 @@ package algnhsa
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"testing"
 
+	"github.com/akrylysov/algnhsa/apigw"
+	"github.com/akrylysov/algnhsa/config"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -67,7 +70,7 @@ func TestHandleEvent(t *testing.T) {
 				AccountID: "foo",
 			},
 		}
-		proxyReq, ok := ProxyRequestFromContext(r.Context())
+		proxyReq, ok := apigw.ProxyRequestFromContext(r.Context())
 		if ok && reflect.DeepEqual(expectedProxyReq, proxyReq) {
 			w.Write([]byte("ok"))
 		}
@@ -80,7 +83,7 @@ func TestHandleEvent(t *testing.T) {
 	})
 	testCases := []struct {
 		req  events.APIGatewayProxyRequest
-		opts *Options
+		opts *config.Options
 		resp events.APIGatewayProxyResponse
 	}{
 		{
@@ -200,7 +203,7 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/text",
 			},
-			opts: &Options{
+			opts: &config.Options{
 				BinaryContentTypes: []string{"text/plain; charset=utf-8"},
 			},
 			resp: events.APIGatewayProxyResponse{
@@ -213,7 +216,7 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/text",
 			},
-			opts: &Options{
+			opts: &config.Options{
 				BinaryContentTypes: []string{"*/*"},
 			},
 			resp: events.APIGatewayProxyResponse{
@@ -226,7 +229,7 @@ func TestHandleEvent(t *testing.T) {
 			req: events.APIGatewayProxyRequest{
 				Path: "/text",
 			},
-			opts: &Options{
+			opts: &config.Options{
 				BinaryContentTypes: []string{"text/html; charset=utf-8"},
 			},
 			resp: events.APIGatewayProxyResponse{
@@ -281,7 +284,7 @@ func TestHandleEvent(t *testing.T) {
 					"proxy": "text",
 				},
 			},
-			opts: &Options{
+			opts: &config.Options{
 				UseProxyPath: true,
 			},
 			resp: events.APIGatewayProxyResponse{
@@ -315,9 +318,21 @@ func TestHandleEvent(t *testing.T) {
 		if opts == nil {
 			opts = defaultOptions
 		}
-		opts.setBinaryContentTypeMap()
+		opts.SetBinaryContentTypeMap()
 		ctx := context.Background()
-		resp, err := handleEvent(ctx, testCase.req, r, opts)
+
+		serialized, err := json.Marshal(testCase.req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var mapReq map[string]interface{}
+		err = json.Unmarshal(serialized, &mapReq)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		resp, err := handleEvent(ctx, mapReq, r, opts)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/akrylysov/algnhsa"
+	"github.com/akrylysov/algnhsa/apigw"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +21,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func contextHandler(w http.ResponseWriter, r *http.Request) {
-	proxyReq, ok := algnhsa.ProxyRequestFromContext(r.Context())
+	proxyReq, ok := apigw.ProxyRequestFromContext(r.Context())
 	if ok {
 		fmt.Fprint(w, proxyReq.RequestContext.AccountID)
 	}
