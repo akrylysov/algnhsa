@@ -9,7 +9,7 @@ import (
 
 const acceptAllContentType = "*/*"
 
-func NewALBResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool, multiValue bool) (events.ALBTargetGroupResponse, error) {
+func newALBResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool, multiValue bool) (events.ALBTargetGroupResponse, error) {
 	event := events.ALBTargetGroupResponse{}
 
 	// Set status code.

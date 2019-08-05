@@ -9,7 +9,7 @@ import (
 
 const acceptAllContentType = "*/*"
 
-func NewAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
+func newAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
 	event := events.APIGatewayProxyResponse{}
 
 	// Set status code.

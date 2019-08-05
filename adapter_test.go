@@ -14,6 +14,23 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
+// TestRequest abstracts both an APIGatewayProxyRequest and an ALBTargetGroupRequest
+// the adapter should handle both identically
+type TestRequest struct {
+	Resource                        string              `json:"resource"`
+	Path                            string              `json:"path"`
+	HTTPMethod                      string              `json:"httpMethod"`
+	Headers                         map[string]string   `json:"headers"`
+	MultiValueHeaders               map[string][]string `json:"multiValueHeaders"`
+	QueryStringParameters           map[string]string   `json:"queryStringParameters"`
+	MultiValueQueryStringParameters map[string][]string `json:"multiValueQueryStringParameters"`
+	PathParameters                  map[string]string   `json:"pathParameters"`
+	StageVariables                  map[string]string   `json:"stageVariables"`
+	RequestContext                  interface{}         `json:"requestContext"`
+	Body                            string              `json:"body"`
+	IsBase64Encoded                 bool                `json:"isBase64Encoded,omitempty"`
+}
+
 func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}, testCase interface{}) {
 	t.Helper()
 	if !reflect.DeepEqual(expected, actual) {
@@ -64,8 +81,9 @@ func TestHandleEvent(t *testing.T) {
 		}
 	})
 	r.HandleFunc("/context", func(w http.ResponseWriter, r *http.Request) {
-		expectedProxyReq := events.APIGatewayProxyRequest{
-			Path: "/context",
+		expectedProxyReq := TestRequest{
+			Resource: "foo",
+			Path:     "/context",
 			RequestContext: events.APIGatewayProxyRequestContext{
 				AccountID: "foo",
 			},
@@ -82,13 +100,14 @@ func TestHandleEvent(t *testing.T) {
 		w.Write([]byte(r.RequestURI))
 	})
 	testCases := []struct {
-		req  events.APIGatewayProxyRequest
+		req  TestRequest
 		opts *config.Options
 		resp events.APIGatewayProxyResponse
 	}{
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/html",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/html",
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode:        200,
@@ -97,8 +116,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/text",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/text",
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
@@ -106,8 +126,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/query-params",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/query-params",
 				QueryStringParameters: map[string]string{
 					"a": "1",
 					"b": "",
@@ -123,8 +144,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/path/encode%2Ftest%7C",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/path/encode%2Ftest%7C",
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
@@ -132,7 +154,8 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
+			req: TestRequest{
+				Resource:   "foo",
 				HTTPMethod: "POST",
 				Path:       "/post-body",
 				Body:       "foobar",
@@ -143,7 +166,8 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
+			req: TestRequest{
+				Resource:        "foo",
 				HTTPMethod:      "POST",
 				Path:            "/post-body",
 				Body:            "Zm9vYmFy",
@@ -155,7 +179,8 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
+			req: TestRequest{
+				Resource:   "foo",
 				HTTPMethod: "POST",
 				Path:       "/form",
 				MultiValueHeaders: map[string][]string{
@@ -170,8 +195,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/status",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/status",
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode:        204,
@@ -179,8 +205,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/headers",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/headers",
 				Headers: map[string]string{
 					"X-a": "1",
 					"x-b": "2",
@@ -200,8 +227,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/text",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/text",
 			},
 			opts: &config.Options{
 				BinaryContentTypes: []string{"text/plain; charset=utf-8"},
@@ -213,8 +241,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/text",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/text",
 			},
 			opts: &config.Options{
 				BinaryContentTypes: []string{"*/*"},
@@ -226,8 +255,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/text",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/text",
 			},
 			opts: &config.Options{
 				BinaryContentTypes: []string{"text/html; charset=utf-8"},
@@ -238,8 +268,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/404",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/404",
 			},
 			resp: events.APIGatewayProxyResponse{
 				StatusCode: 404,
@@ -251,8 +282,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/context",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/context",
 				RequestContext: events.APIGatewayProxyRequestContext{
 					AccountID: "foo",
 				},
@@ -263,8 +295,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/hostname",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/hostname",
 				Headers: map[string]string{
 					"Host": "bar",
 				},
@@ -278,8 +311,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/stage/text",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/stage/text",
 				PathParameters: map[string]string{
 					"proxy": "text",
 				},
@@ -293,8 +327,9 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: events.APIGatewayProxyRequest{
-				Path: "/requesturi",
+			req: TestRequest{
+				Resource: "foo",
+				Path:     "/requesturi",
 				QueryStringParameters: map[string]string{
 					"foo": "bar",
 				},

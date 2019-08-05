@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func NewHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, useProxyPath bool) (*http.Request, error) {
+func newHTTPRequest(ctx context.Context, event events.APIGatewayProxyRequest, useProxyPath bool) (*http.Request, error) {
 	// Build request URL.
 	params := url.Values{}
 	for k, v := range event.QueryStringParameters {

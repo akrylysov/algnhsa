@@ -11,12 +11,12 @@ import (
 
 func HandleEvent(ctx context.Context, request events.APIGatewayProxyRequest, handler http.Handler, opts *config.Options) (events.APIGatewayProxyResponse, error) {
 
-	r, err := NewHTTPRequest(ctx, request, opts.UseProxyPath)
+	r, err := newHTTPRequest(ctx, request, opts.UseProxyPath)
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, r)
-	return NewAPIGatewayResponse(w, opts.BinaryContentTypeMap)
+	return newAPIGatewayResponse(w, opts.BinaryContentTypeMap)
 
 }

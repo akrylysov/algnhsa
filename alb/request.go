@@ -11,14 +11,20 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-func NewHTTPRequest(ctx context.Context, event events.ALBTargetGroupRequest) (*http.Request, error) {
+// Headers and query parameters in the request and response are handled differently
+// depending on whether the ALB target group has the "Multi value headers" attribute
+// set.
+//
+// https://docs.aws.amazon.com/elasticloadbalancing/latest/application/lambda-functions.html#multi-value-headers-request
+func hasMVHeaders(event events.ALBTargetGroupRequest) bool {
+	return len(event.MultiValueHeaders) > 0
+}
 
-	// headers will always be set in one or the other depending
-	// on whether or not the target group has use-multi enabled
-	multiValue := len(event.MultiValueHeaders) > 0
-
+func newHTTPRequest(ctx context.Context, event events.ALBTargetGroupRequest) (*http.Request, error) {
 	// Build request URL.
 	params := url.Values{}
+
+	multiValue := hasMVHeaders(event)
 
 	if multiValue {
 		for k, vals := range event.MultiValueQueryStringParameters {
