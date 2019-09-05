@@ -38,9 +38,16 @@ func newHTTPRequest(ctx context.Context, event events.ALBTargetGroupRequest) (*h
 	}
 
 	u := url.URL{
-		Host:     event.Headers["Host"],
 		RawPath:  event.Path,
 		RawQuery: params.Encode(),
+	}
+
+	if multiValue {
+		if len(event.MultiValueHeaders["Host"]) > 0 {
+			u.Host = event.MultiValueHeaders["Host"][0]
+		}
+	} else {
+		u.Host = event.Headers["Host"]
 	}
 
 	// Unescape request path

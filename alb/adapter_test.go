@@ -1,35 +1,16 @@
-package algnhsa
+package alb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"testing"
 
-	"github.com/akrylysov/algnhsa/apigw"
 	"github.com/akrylysov/algnhsa/config"
 	"github.com/aws/aws-lambda-go/events"
 )
-
-// TestRequest abstracts both an APIGatewayProxyRequest and an ALBTargetGroupRequest
-// the adapter should handle both identically
-type TestRequest struct {
-	Resource                        string              `json:"resource"`
-	Path                            string              `json:"path"`
-	HTTPMethod                      string              `json:"httpMethod"`
-	Headers                         map[string]string   `json:"headers"`
-	MultiValueHeaders               map[string][]string `json:"multiValueHeaders"`
-	QueryStringParameters           map[string]string   `json:"queryStringParameters"`
-	MultiValueQueryStringParameters map[string][]string `json:"multiValueQueryStringParameters"`
-	PathParameters                  map[string]string   `json:"pathParameters"`
-	StageVariables                  map[string]string   `json:"stageVariables"`
-	RequestContext                  interface{}         `json:"requestContext"`
-	Body                            string              `json:"body"`
-	IsBase64Encoded                 bool                `json:"isBase64Encoded,omitempty"`
-}
 
 func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}, testCase interface{}) {
 	t.Helper()
@@ -37,6 +18,14 @@ func assertDeepEqual(t *testing.T, expected interface{}, actual interface{}, tes
 		t.Fatalf("\nexpected %+v\ngot      %+v\ntest case: %+v", expected, actual, testCase)
 	}
 }
+
+// arbitrary value to insert as MultiValueHeaders in requests to trigger a multiValue response
+var mvHeaders = map[string][]string{
+	"Host": []string{"foo.bar.com"},
+}
+
+// an "empty" MultiValueHeaders response
+var mvHeaderOutput = map[string][]string{"Content-Type": []string{"text/plain; charset=utf-8"}}
 
 func TestHandleEvent(t *testing.T) {
 	r := http.NewServeMux()
@@ -73,6 +62,13 @@ func TestHandleEvent(t *testing.T) {
 		w.WriteHeader(204)
 	})
 	r.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-A") == "1" && r.Header.Get("X-B") == "2" {
+			w.Header().Set("X-Bar", "baz")
+			w.Header().Add("X-y", "1")
+			w.Write([]byte("ok"))
+		}
+	})
+	r.HandleFunc("/mvheaders", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-A") == "1" && reflect.DeepEqual(r.Header["X-B"], []string{"21", "22"}) {
 			w.Header().Set("X-Bar", "baz")
 			w.Header().Add("X-y", "1")
@@ -81,14 +77,15 @@ func TestHandleEvent(t *testing.T) {
 		}
 	})
 	r.HandleFunc("/context", func(w http.ResponseWriter, r *http.Request) {
-		expectedProxyReq := TestRequest{
-			Resource: "foo",
-			Path:     "/context",
-			RequestContext: events.APIGatewayProxyRequestContext{
-				AccountID: "foo",
+		expectedProxyReq := events.ALBTargetGroupRequest{
+			Path: "/context",
+			RequestContext: events.ALBTargetGroupRequestContext{
+				ELB: events.ELBContext{
+					TargetGroupArn: "foo::bar:baz",
+				},
 			},
 		}
-		proxyReq, ok := apigw.ProxyRequestFromContext(r.Context())
+		proxyReq, ok := TargetGroupRequestFromContext(r.Context())
 		if ok && reflect.DeepEqual(expectedProxyReq, proxyReq) {
 			w.Write([]byte("ok"))
 		}
@@ -100,87 +97,110 @@ func TestHandleEvent(t *testing.T) {
 		w.Write([]byte(r.RequestURI))
 	})
 	testCases := []struct {
-		req  TestRequest
+		req  events.ALBTargetGroupRequest
 		opts *config.Options
-		resp events.APIGatewayProxyResponse
+		resp events.ALBTargetGroupResponse
 	}{
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/html",
+			req: events.ALBTargetGroupRequest{
+				Path: "/html",
 			},
-			resp: events.APIGatewayProxyResponse{
-				StatusCode:        200,
-				Body:              "<html>foo</html>",
-				MultiValueHeaders: map[string][]string{"Content-Type": {"text/html; charset=utf-8"}},
+			resp: events.ALBTargetGroupResponse{
+				StatusCode: 200,
+				Body:       "<html>foo</html>",
+				Headers:    map[string]string{"Content-Type": "text/html; charset=utf-8"},
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/text",
+			req: events.ALBTargetGroupRequest{
+				Path: "/text",
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "ok",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/query-params",
+			req: events.ALBTargetGroupRequest{
+				Path:              "/text",
+				MultiValueHeaders: mvHeaders,
+			},
+			resp: events.ALBTargetGroupResponse{
+				StatusCode:        200,
+				Body:              "ok",
+				MultiValueHeaders: mvHeaderOutput,
+			},
+		},
+		{
+			req: events.ALBTargetGroupRequest{
+				Path: "/query-params",
+				// ignored since it's a multiValue request
 				QueryStringParameters: map[string]string{
 					"a": "1",
-					"b": "",
 				},
 				MultiValueQueryStringParameters: map[string][]string{
 					"b": {"2"},
 					"c": {"31", "32", "33"},
 				},
+				MultiValueHeaders: mvHeaders,
 			},
-			resp: events.APIGatewayProxyResponse{
-				StatusCode: 200,
-				Body:       "a=[1], b=[2], c=[31 32 33], unknown=[]",
+			resp: events.ALBTargetGroupResponse{
+				StatusCode:        200,
+				Body:              "a=[], b=[2], c=[31 32 33], unknown=[]",
+				MultiValueHeaders: mvHeaderOutput,
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/path/encode%2Ftest%7C",
+			req: events.ALBTargetGroupRequest{
+				Path: "/query-params",
+				QueryStringParameters: map[string]string{
+					"a": "1",
+					"b": "2",
+				},
+				// these should be ignored since it's not a multi-value request
+				MultiValueQueryStringParameters: map[string][]string{
+					"c": {"31", "32", "33"},
+				},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
+				StatusCode: 200,
+				Body:       "a=[1], b=[2], c=[], unknown=[]",
+			},
+		},
+		{
+			req: events.ALBTargetGroupRequest{
+				Path: "/path/encode%2Ftest%7C",
+			},
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "/path/encode/test|",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource:   "foo",
+			req: events.ALBTargetGroupRequest{
 				HTTPMethod: "POST",
 				Path:       "/post-body",
 				Body:       "foobar",
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "foobar",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource:        "foo",
+			req: events.ALBTargetGroupRequest{
 				HTTPMethod:      "POST",
 				Path:            "/post-body",
 				Body:            "Zm9vYmFy",
 				IsBase64Encoded: true,
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "foobar",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource:   "foo",
+			req: events.ALBTargetGroupRequest{
 				HTTPMethod: "POST",
 				Path:       "/form",
 				MultiValueHeaders: map[string][]string{
@@ -189,34 +209,58 @@ func TestHandleEvent(t *testing.T) {
 				},
 				Body: "f=foo&s=bar&xyz=123",
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "foobar",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/status",
+			req: events.ALBTargetGroupRequest{
+				Path: "/status",
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
+				StatusCode: 204,
+				Headers:    map[string]string{"Content-Type": "image/gif"},
+			},
+		},
+		{
+			req: events.ALBTargetGroupRequest{
+				Path:              "/status",
+				MultiValueHeaders: mvHeaders,
+			},
+			resp: events.ALBTargetGroupResponse{
 				StatusCode:        204,
 				MultiValueHeaders: map[string][]string{"Content-Type": {"image/gif"}},
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/headers",
+			req: events.ALBTargetGroupRequest{
+				Path: "/headers",
 				Headers: map[string]string{
 					"X-a": "1",
 					"x-b": "2",
 				},
+			},
+			resp: events.ALBTargetGroupResponse{
+				StatusCode: 200,
+				Headers: map[string]string{
+					"Content-Type": "text/plain; charset=utf-8",
+					"X-Bar":        "baz",
+					"X-Y":          "1",
+				},
+				Body: "ok",
+			},
+		},
+		{
+			req: events.ALBTargetGroupRequest{
+				Path: "/mvheaders",
 				MultiValueHeaders: map[string][]string{
+					"X-a": {"1"},
+					"x-b": {"2"},
 					"x-B": {"21", "22"},
 				},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				MultiValueHeaders: map[string][]string{
 					"Content-Type": {"text/plain; charset=utf-8"},
@@ -227,52 +271,62 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/text",
+			req: events.ALBTargetGroupRequest{
+				Path: "/text",
 			},
 			opts: &config.Options{
 				BinaryContentTypes: []string{"text/plain; charset=utf-8"},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode:      200,
 				Body:            "b2s=",
 				IsBase64Encoded: true,
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/text",
+			req: events.ALBTargetGroupRequest{
+				Path: "/text",
 			},
 			opts: &config.Options{
 				BinaryContentTypes: []string{"*/*"},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode:      200,
 				Body:            "b2s=",
 				IsBase64Encoded: true,
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/text",
+			req: events.ALBTargetGroupRequest{
+				Path: "/text",
 			},
 			opts: &config.Options{
 				BinaryContentTypes: []string{"text/html; charset=utf-8"},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "ok",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/404",
+			req: events.ALBTargetGroupRequest{
+				Path: "/404",
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
+				StatusCode: 404,
+				Body:       "404 page not found\n",
+				Headers: map[string]string{
+					"Content-Type":           "text/plain; charset=utf-8",
+					"X-Content-Type-Options": "nosniff",
+				},
+			},
+		},
+		{
+			req: events.ALBTargetGroupRequest{
+				Path:              "/404",
+				MultiValueHeaders: mvHeaders,
+			},
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 404,
 				Body:       "404 page not found\n",
 				MultiValueHeaders: map[string][]string{
@@ -282,59 +336,55 @@ func TestHandleEvent(t *testing.T) {
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/context",
-				RequestContext: events.APIGatewayProxyRequestContext{
-					AccountID: "foo",
+			req: events.ALBTargetGroupRequest{
+				Path: "/context",
+				RequestContext: events.ALBTargetGroupRequestContext{
+					ELB: events.ELBContext{
+						TargetGroupArn: "foo::bar:baz",
+					},
 				},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "ok",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/hostname",
+			req: events.ALBTargetGroupRequest{
+				Path: "/hostname",
 				Headers: map[string]string{
 					"Host": "bar",
 				},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
-				MultiValueHeaders: map[string][]string{
-					"Content-Type": {"text/plain; charset=utf-8"},
+				Headers: map[string]string{
+					"Content-Type": "text/plain; charset=utf-8",
 				},
 				Body: "bar",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/stage/text",
-				PathParameters: map[string]string{
-					"proxy": "text",
-				},
+			req: events.ALBTargetGroupRequest{
+				Path:              "/hostname",
+				MultiValueHeaders: mvHeaders,
 			},
-			opts: &config.Options{
-				UseProxyPath: true,
-			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
-				Body:       "ok",
+				MultiValueHeaders: map[string][]string{
+					"Content-Type": {"text/plain; charset=utf-8"},
+				},
+				Body: "foo.bar.com",
 			},
 		},
 		{
-			req: TestRequest{
-				Resource: "foo",
-				Path:     "/requesturi",
+			req: events.ALBTargetGroupRequest{
+				Path: "/requesturi",
 				QueryStringParameters: map[string]string{
 					"foo": "bar",
 				},
 			},
-			resp: events.APIGatewayProxyResponse{
+			resp: events.ALBTargetGroupResponse{
 				StatusCode: 200,
 				Body:       "/requesturi?foo=bar",
 			},
@@ -346,28 +396,21 @@ func TestHandleEvent(t *testing.T) {
 			req.HTTPMethod = "GET"
 		}
 		expectedResp := testCase.resp
-		if expectedResp.MultiValueHeaders == nil {
+
+		if req.MultiValueHeaders == nil && expectedResp.Headers == nil {
+			expectedResp.Headers = map[string]string{"Content-Type": "text/plain; charset=utf-8"}
+		}
+
+		if req.MultiValueHeaders != nil && expectedResp.MultiValueHeaders == nil {
 			expectedResp.MultiValueHeaders = map[string][]string{"Content-Type": {"text/plain; charset=utf-8"}}
 		}
 		opts := testCase.opts
 		if opts == nil {
-			opts = defaultOptions
+			opts = &config.Options{}
 		}
 		opts.SetBinaryContentTypeMap()
 		ctx := context.Background()
-
-		serialized, err := json.Marshal(testCase.req)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var mapReq map[string]interface{}
-		err = json.Unmarshal(serialized, &mapReq)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		resp, err := handleEvent(ctx, mapReq, r, opts)
+		resp, err := HandleEvent(ctx, testCase.req, r, opts)
 		if err != nil {
 			t.Fatal(err)
 		}
