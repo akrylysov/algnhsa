@@ -6,16 +6,37 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type key int
+type contextKey int
 
-const requestContextKey key = 0
+const (
+	proxyRequestContextKey contextKey = iota
+	albRequestContextKey
+)
 
-func newContext(ctx context.Context, event events.APIGatewayProxyRequest) context.Context {
-	return context.WithValue(ctx, requestContextKey, event)
+func newProxyRequestContext(ctx context.Context, event events.APIGatewayProxyRequest) context.Context {
+	return context.WithValue(ctx, proxyRequestContextKey, event)
 }
 
 // ProxyRequestFromContext extracts the APIGatewayProxyRequest event from ctx.
 func ProxyRequestFromContext(ctx context.Context) (events.APIGatewayProxyRequest, bool) {
-	event, ok := ctx.Value(requestContextKey).(events.APIGatewayProxyRequest)
+	val := ctx.Value(proxyRequestContextKey)
+	if val == nil {
+		return events.APIGatewayProxyRequest{}, false
+	}
+	event, ok := val.(events.APIGatewayProxyRequest)
+	return event, ok
+}
+
+func newTargetGroupRequestContext(ctx context.Context, event events.ALBTargetGroupRequest) context.Context {
+	return context.WithValue(ctx, albRequestContextKey, event)
+}
+
+// TargetGroupRequestFromContext extracts the ALBTargetGroupRequest event from ctx.
+func TargetGroupRequestFromContext(ctx context.Context) (events.ALBTargetGroupRequest, bool) {
+	val := ctx.Value(albRequestContextKey)
+	if val == nil {
+		return events.ALBTargetGroupRequest{}, false
+	}
+	event, ok := val.(events.ALBTargetGroupRequest)
 	return event, ok
 }
