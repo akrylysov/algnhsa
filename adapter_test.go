@@ -13,17 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testModeAPIGW = iota
-	testModeALB
-)
-
 type adapterTestCase struct {
-	req      lambdaRequest
-	opts     *Options
-	resp     lambdaResponse
-	apigwReq events.APIGatewayProxyRequest
-	albReq   events.ALBTargetGroupRequest
+	req         lambdaRequest
+	opts        *Options
+	resp        lambdaResponse
+	apigwReq    events.APIGatewayProxyRequest
+	albReq      events.ALBTargetGroupRequest
+	expectedErr error
 }
 
 var commonAdapterTestCases = []adapterTestCase{
@@ -252,6 +248,15 @@ var apigwAdapterTestCases = []adapterTestCase{
 			Body:       "ok",
 		},
 	},
+	{
+		req: lambdaRequest{
+			Path: "/apigw/wrongtype",
+		},
+		opts: &Options{
+			RequestType: RequestTypeALB,
+		},
+		expectedErr: errNonALBEvent,
+	},
 }
 
 var albAdapterTestCases = []adapterTestCase{
@@ -271,9 +276,18 @@ var albAdapterTestCases = []adapterTestCase{
 			Body:       "ok",
 		},
 	},
+	{
+		req: lambdaRequest{
+			Path: "/alb/wrongtype",
+		},
+		opts: &Options{
+			RequestType: RequestTypeAPIGateway,
+		},
+		expectedErr: errNonAPIGateway,
+	},
 }
 
-func testHandle(t *testing.T, testCases []adapterTestCase, testMode int) {
+func testHandle(t *testing.T, testCases []adapterTestCase, testMode RequestType, requestType RequestType) {
 	t.Helper()
 	asrt := assert.New(t)
 
@@ -377,7 +391,7 @@ func testHandle(t *testing.T, testCases []adapterTestCase, testMode int) {
 		asrt.NoError(err)
 
 		var payload []byte
-		if testMode == testModeAPIGW {
+		if testMode == RequestTypeAPIGateway {
 			req := testCase.apigwReq
 			err = json.Unmarshal(lambdaPayload, &req)
 			asrt.NoError(err)
@@ -405,25 +419,44 @@ func testHandle(t *testing.T, testCases []adapterTestCase, testMode int) {
 		opts := testCase.opts
 		if opts == nil {
 			opts = defaultOptions
+			opts.RequestType = requestType
 		}
 		opts.setBinaryContentTypeMap()
 		handler := lambdaHandler{httpHandler: r, opts: opts}
 		resp, err := handler.handleEvent(context.Background(), payload)
-		asrt.NoError(err)
-		asrt.EqualValues(expectedResp, resp, testCase)
+		if testCase.expectedErr == nil {
+			asrt.NoError(err)
+			asrt.EqualValues(expectedResp, resp, testCase)
+		} else {
+			asrt.Equal(testCase.expectedErr, err)
+		}
 	}
 }
 
-func TestHandleAPIGateway(t *testing.T) {
+func TestHandleAPIGatewayAuto(t *testing.T) {
 	var testCases []adapterTestCase
 	testCases = append(testCases, commonAdapterTestCases...)
 	testCases = append(testCases, apigwAdapterTestCases...)
-	testHandle(t, testCases, testModeAPIGW)
+	testHandle(t, testCases, RequestTypeAPIGateway, RequestTypeAuto)
 }
 
-func TestHandleALB(t *testing.T) {
+func TestHandleAPIGatewayForced(t *testing.T) {
+	var testCases []adapterTestCase
+	testCases = append(testCases, commonAdapterTestCases...)
+	testCases = append(testCases, apigwAdapterTestCases...)
+	testHandle(t, testCases, RequestTypeAPIGateway, RequestTypeAPIGateway)
+}
+
+func TestHandleALBAuto(t *testing.T) {
 	var testCases []adapterTestCase
 	testCases = append(testCases, commonAdapterTestCases...)
 	testCases = append(testCases, albAdapterTestCases...)
-	testHandle(t, testCases, testModeALB)
+	testHandle(t, testCases, RequestTypeALB, RequestTypeAuto)
+}
+
+func TestHandleALBForced(t *testing.T) {
+	var testCases []adapterTestCase
+	testCases = append(testCases, commonAdapterTestCases...)
+	testCases = append(testCases, albAdapterTestCases...)
+	testHandle(t, testCases, RequestTypeALB, RequestTypeALB)
 }

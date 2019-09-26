@@ -36,17 +36,18 @@ func newALBRequest(ctx context.Context, payload []byte, opts *Options) (lambdaRe
 		return lambdaRequest{}, errALBExpectedMultiValueHeaders
 	}
 
-	req := lambdaRequest{}
-	req.HTTPMethod = event.HTTPMethod
-	req.Path = event.Path
-	req.QueryStringParameters = event.QueryStringParameters
-	req.MultiValueQueryStringParameters = event.MultiValueQueryStringParameters
-	req.Headers = event.Headers
-	req.MultiValueHeaders = event.MultiValueHeaders
-	req.Body = event.Body
-	req.IsBase64Encoded = event.IsBase64Encoded
-	req.SourceIP = getALBSourceIP(event)
-	req.Context = newTargetGroupRequestContext(ctx, event)
+	req := lambdaRequest{
+		HTTPMethod:                      event.HTTPMethod,
+		Path:                            event.Path,
+		QueryStringParameters:           event.QueryStringParameters,
+		MultiValueQueryStringParameters: event.MultiValueQueryStringParameters,
+		Headers:                         event.Headers,
+		MultiValueHeaders:               event.MultiValueHeaders,
+		Body:                            event.Body,
+		IsBase64Encoded:                 event.IsBase64Encoded,
+		SourceIP:                        getALBSourceIP(event),
+		Context:                         newTargetGroupRequestContext(ctx, event),
+	}
 
 	return req, nil
 }

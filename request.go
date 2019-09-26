@@ -24,6 +24,15 @@ type lambdaRequest struct {
 }
 
 func newLambdaRequest(ctx context.Context, payload []byte, opts *Options) (lambdaRequest, error) {
+	switch opts.RequestType {
+	case RequestTypeAPIGateway:
+		return newAPIGatewayRequest(ctx, payload, opts)
+	case RequestTypeALB:
+		return newALBRequest(ctx, payload, opts)
+	}
+
+	// The request type wasn't specified.
+	// Try to decode the payload as APIGatewayProxyRequest, if it fails try ALBTargetGroupRequest.
 	req, err := newAPIGatewayRequest(ctx, payload, opts)
 	if err != nil && err != errNonAPIGateway {
 		return lambdaRequest{}, err

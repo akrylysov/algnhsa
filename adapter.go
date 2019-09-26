@@ -21,13 +21,7 @@ func (handler lambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte
 	if err != nil {
 		return nil, err
 	}
-
-	respPayload, err := json.Marshal(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	return respPayload, nil
+	return json.Marshal(resp)
 }
 
 func (handler lambdaHandler) handleEvent(ctx context.Context, payload []byte) (lambdaResponse, error) {

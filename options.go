@@ -1,7 +1,19 @@
 package algnhsa
 
+type RequestType int
+
+const (
+	RequestTypeAuto RequestType = iota
+	RequestTypeAPIGateway
+	RequestTypeALB
+)
+
 // Options holds the optional parameters.
 type Options struct {
+	// RequestType sets the expected request type.
+	// By default algnhsa deduces the request type from the lambda function payload.
+	RequestType RequestType
+
 	// BinaryContentTypes sets content types that should be treated as binary types by API Gateway.
 	// The "*/* value makes algnhsa treat any content type as binary.
 	BinaryContentTypes   []string
