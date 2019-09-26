@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	errNonALBEvent                  = errors.New("non ALBTargetGroupRequest event")
+	errALBUnexpectedRequest         = errors.New("expected ALBTargetGroupRequest")
 	errALBExpectedMultiValueHeaders = errors.New("expected multi value headers; enable Multi value headers in target group settings")
 )
 
@@ -30,7 +30,7 @@ func newALBRequest(ctx context.Context, payload []byte, opts *Options) (lambdaRe
 		return lambdaRequest{}, err
 	}
 	if event.RequestContext.ELB.TargetGroupArn == "" {
-		return lambdaRequest{}, errNonALBEvent
+		return lambdaRequest{}, errALBUnexpectedRequest
 	}
 	if len(event.MultiValueHeaders) == 0 {
 		return lambdaRequest{}, errALBExpectedMultiValueHeaders

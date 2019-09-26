@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	errNonAPIGateway = errors.New("non APIGatewayProxyRequest event")
+	errAPIGatewayUnexpectedRequest = errors.New("expected APIGatewayProxyRequest event")
 )
 
 func newAPIGatewayRequest(ctx context.Context, payload []byte, opts *Options) (lambdaRequest, error) {
@@ -19,7 +19,7 @@ func newAPIGatewayRequest(ctx context.Context, payload []byte, opts *Options) (l
 		return lambdaRequest{}, err
 	}
 	if event.RequestContext.AccountID == "" {
-		return lambdaRequest{}, errNonAPIGateway
+		return lambdaRequest{}, errAPIGatewayUnexpectedRequest
 	}
 
 	req := lambdaRequest{

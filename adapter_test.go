@@ -255,7 +255,7 @@ var apigwAdapterTestCases = []adapterTestCase{
 		opts: &Options{
 			RequestType: RequestTypeALB,
 		},
-		expectedErr: errNonALBEvent,
+		expectedErr: errALBUnexpectedRequest,
 	},
 }
 
@@ -283,7 +283,7 @@ var albAdapterTestCases = []adapterTestCase{
 		opts: &Options{
 			RequestType: RequestTypeAPIGateway,
 		},
-		expectedErr: errNonAPIGateway,
+		expectedErr: errAPIGatewayUnexpectedRequest,
 	},
 }
 

@@ -34,7 +34,7 @@ func newLambdaRequest(ctx context.Context, payload []byte, opts *Options) (lambd
 	// The request type wasn't specified.
 	// Try to decode the payload as APIGatewayProxyRequest, if it fails try ALBTargetGroupRequest.
 	req, err := newAPIGatewayRequest(ctx, payload, opts)
-	if err != nil && err != errNonAPIGateway {
+	if err != nil && err != errAPIGatewayUnexpectedRequest {
 		return lambdaRequest{}, err
 	}
 	if err == nil {
@@ -42,7 +42,7 @@ func newLambdaRequest(ctx context.Context, payload []byte, opts *Options) (lambd
 	}
 
 	req, err = newALBRequest(ctx, payload, opts)
-	if err != nil && err != errNonALBEvent {
+	if err != nil && err != errALBUnexpectedRequest {
 		return lambdaRequest{}, err
 	}
 	if err == nil {
