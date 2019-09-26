@@ -2,24 +2,41 @@ package algnhsa
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handleEvent(ctx context.Context, event events.APIGatewayProxyRequest, handler http.Handler, opts *Options) (events.APIGatewayProxyResponse, error) {
-	r, err := newHTTPRequest(ctx, event, opts.UseProxyPath)
-	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
-	}
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
-	return newAPIGatewayResponse(w, opts.binaryContentTypeMap)
+var defaultOptions = &Options{}
+
+type lambdaHandler struct {
+	httpHandler http.Handler
+	opts        *Options
 }
 
-var defaultOptions = &Options{}
+func (handler lambdaHandler) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
+	resp, err := handler.handleEvent(ctx, payload)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(resp)
+}
+
+func (handler lambdaHandler) handleEvent(ctx context.Context, payload []byte) (lambdaResponse, error) {
+	eventReq, err := newLambdaRequest(ctx, payload, handler.opts)
+	if err != nil {
+		return lambdaResponse{}, err
+	}
+	r, err := newHTTPRequest(eventReq)
+	if err != nil {
+		return lambdaResponse{}, err
+	}
+	w := httptest.NewRecorder()
+	handler.httpHandler.ServeHTTP(w, r)
+	return newLambdaResponse(w, handler.opts.binaryContentTypeMap)
+}
 
 // ListenAndServe starts the AWS Lambda runtime (aws-lambda-go lambda.Start) with a given handler.
 func ListenAndServe(handler http.Handler, opts *Options) {
@@ -30,7 +47,5 @@ func ListenAndServe(handler http.Handler, opts *Options) {
 		opts = defaultOptions
 	}
 	opts.setBinaryContentTypeMap()
-	lambda.Start(func(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		return handleEvent(ctx, event, handler, opts)
-	})
+	lambda.StartHandler(lambdaHandler{httpHandler: handler, opts: opts})
 }

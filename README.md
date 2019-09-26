@@ -2,7 +2,7 @@
 
 algnhsa is an AWS Lambda Go `net/http` server adapter.
 
-algnhsa enables running Go web applications on AWS Lambda/API Gateway without changing the existing HTTP handlers:
+algnhsa enables running Go web applications on AWS Lambda and API Gateway or ALB without changing the existing HTTP handlers:
 
 ```go
 package main
@@ -41,7 +41,7 @@ func main() {
 }
 ```
 
-Plug in a third-party HTTP router:
+## Plug in a third-party HTTP router
 
 ```go
 package main
@@ -62,10 +62,20 @@ func main() {
 }
 ```
 
-More details at http://artem.krylysov.com/blog/2018/01/18/porting-go-web-applications-to-aws-lambda/.
+## Setting up API Gateway 
 
-Note: algnhsa requires [aws-lambda-go](https://github.com/aws/aws-lambda-go) version 1.8.1 or higher:
+1. Create a new REST API.
 
-```sh
-go get -u github.com/aws/aws-lambda-go/events
-```
+2. In the "Resources" section create a new `ANY` method to handle requests to `/` (check "Use Lambda Proxy Integration").
+
+    ![API Gateway index](https://akrylysov.github.io/algnhsa/apigateway-index.png)
+
+3. Add a catch-all `{proxy+}` resource to handle requests to every other path (check "Configure as proxy resource").
+
+    ![API Gateway catch-all](https://akrylysov.github.io/algnhsa/apigateway-catchall.png)
+
+## Setting up ALB
+
+1. Create a new ALB and point it to your Lambda function.
+
+2. In the target group settings enable "Multi value headers".

@@ -3,14 +3,20 @@ package algnhsa
 import (
 	"encoding/base64"
 	"net/http/httptest"
-
-	"github.com/aws/aws-lambda-go/events"
 )
 
 const acceptAllContentType = "*/*"
 
-func newAPIGatewayResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (events.APIGatewayProxyResponse, error) {
-	event := events.APIGatewayProxyResponse{}
+type lambdaResponse struct {
+	StatusCode        int                 `json:"statusCode"`
+	Headers           map[string]string   `json:"headers"`
+	MultiValueHeaders map[string][]string `json:"multiValueHeaders"`
+	Body              string              `json:"body"`
+	IsBase64Encoded   bool                `json:"isBase64Encoded,omitempty"`
+}
+
+func newLambdaResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool) (lambdaResponse, error) {
+	event := lambdaResponse{}
 
 	// Set status code.
 	event.StatusCode = w.Code
