@@ -14,7 +14,7 @@ type Options struct {
 	// By default algnhsa deduces the request type from the lambda function payload.
 	RequestType RequestType
 
-	// BinaryContentTypes sets content types that should be treated as binary types by API Gateway.
+	// BinaryContentTypes sets content types that should be treated as binary types.
 	// The "*/* value makes algnhsa treat any content type as binary.
 	BinaryContentTypes   []string
 	binaryContentTypeMap map[string]bool
