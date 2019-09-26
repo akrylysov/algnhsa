@@ -99,7 +99,7 @@ func newHTTPRequest(event lambdaRequest) (*http.Request, error) {
 	}
 
 	// Create a new request.
-	r, err := http.NewRequestWithContext(event.Context, event.HTTPMethod, u.String(), body)
+	r, err := http.NewRequest(event.HTTPMethod, u.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -112,5 +112,5 @@ func newHTTPRequest(event lambdaRequest) (*http.Request, error) {
 
 	r.Header = headers
 
-	return r, nil
+	return r.WithContext(event.Context), nil
 }

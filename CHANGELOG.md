@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.12.1] - 2019-09-26
+### Added
+- Fixed compatibility with Go versions older than 1.13.
+
 ## [0.12.0] - 2019-09-26
 ### Added
 - ALB support (thanks @adimarco and @ARolek for feedback).
