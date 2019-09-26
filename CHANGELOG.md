@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0] - 2019-09-26
+### Added
+- ALB support (thanks @adimarco and @ARolek for feedback).
+
+## [0.11.0] - 2019-03-18
+### Added
+- Go Modules support.
+
 ## [0.10] - 2019-02-03
 ### Changed
 - Set RequestURI on request (@RossHammer).
