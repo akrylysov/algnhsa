@@ -6,12 +6,20 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type contextKey int
+// ContextKey type used to get/set items from request context
+type ContextKey int
 
 const (
-	proxyRequestContextKey contextKey = iota
+	proxyRequestContextKey ContextKey = iota
 	albRequestContextKey
 )
+
+// GetProxyRequestContextKey is useful for creating custom claims when testing locally
+// ctx := context.WithValue(r.Context(), algnhsa.GetProxyRequestContextKey(), customLocalClaims)
+// r = r.Clone(ctx)
+func GetProxyRequestContextKey() ContextKey {
+	return proxyRequestContextKey
+}
 
 func newProxyRequestContext(ctx context.Context, event events.APIGatewayProxyRequest) context.Context {
 	return context.WithValue(ctx, proxyRequestContextKey, event)
