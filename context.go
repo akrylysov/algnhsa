@@ -9,20 +9,24 @@ import (
 type contextKey int
 
 const (
-	// ProxyRequestContextKey is useful for creating custom claims when testing locally
-	// ctx := context.WithValue(r.Context(), algnhsa.ProxyRequestKey, customLocalClaims)
-	// r = r.Clone(ctx)
-	ProxyRequestContextKey contextKey = iota
+	proxyRequestContextKey contextKey = iota
 	albRequestContextKey
 )
 
+// GetProxyRequestContextKey is useful for creating custom claims when testing locally
+// ctx := context.WithValue(r.Context(), algnhsa.GetProxyRequestContextKey(), customLocalClaims)
+// r = r.Clone(ctx)
+func GetProxyRequestContextKey() contextKey {
+	return proxyRequestContextKey
+}
+
 func newProxyRequestContext(ctx context.Context, event events.APIGatewayProxyRequest) context.Context {
-	return context.WithValue(ctx, ProxyRequestContextKey, event)
+	return context.WithValue(ctx, proxyRequestContextKey, event)
 }
 
 // ProxyRequestFromContext extracts the APIGatewayProxyRequest event from ctx.
 func ProxyRequestFromContext(ctx context.Context) (events.APIGatewayProxyRequest, bool) {
-	val := ctx.Value(ProxyRequestContextKey)
+	val := ctx.Value(proxyRequestContextKey)
 	if val == nil {
 		return events.APIGatewayProxyRequest{}, false
 	}
