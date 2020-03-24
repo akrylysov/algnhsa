@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"path"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -24,7 +24,7 @@ func newAPIGatewayRequest(ctx context.Context, payload []byte, opts *Options) (l
 
 	req := lambdaRequest{
 		HTTPMethod:                      event.HTTPMethod,
-		Path:                            event.Path,
+		Path:                            event.Resource,
 		QueryStringParameters:           event.QueryStringParameters,
 		MultiValueQueryStringParameters: event.MultiValueQueryStringParameters,
 		Headers:                         event.Headers,
@@ -35,9 +35,13 @@ func newAPIGatewayRequest(ctx context.Context, payload []byte, opts *Options) (l
 		Context:                         newProxyRequestContext(ctx, event),
 	}
 
-	if opts.UseProxyPath {
-		req.Path = path.Join("/", event.PathParameters["proxy"])
+	for k, v := range event.PathParameters {
+		req.Path = strings.Replace(req.Path, "{"+k+"}", v, -1)
 	}
+
+	// if opts.UseProxyPath {
+	// 	req.Path = path.Join("/", event.PathParameters["proxy"])
+	// }
 
 	return req, nil
 }
