@@ -1,5 +1,7 @@
 package algnhsa
 
+import "strings"
+
 type RequestType int
 
 const (
@@ -23,6 +25,28 @@ type Options struct {
 	// Use API Gateway PathParameters["proxy"] when constructing the request url.
 	// Strips the base path mapping when using a custom domain with API Gateway.
 	UseProxyPath bool
+
+	// ActionPathOverrideMap allows you to provide a path and http method override
+	// for API Gateway Websocket Actions.
+	//
+	// Example:
+	//
+	actionPathOverrideMap map[string]actionPathOverride
+}
+
+func (opts *Options) ActionPathOverride(action string, method string, path string) {
+	if opts.actionPathOverrideMap == nil {
+		opts.actionPathOverrideMap = map[string]actionPathOverride{}
+	}
+	opts.actionPathOverrideMap[strings.ToLower(action)] = actionPathOverride{
+		HTTPMethod: method,
+		Path:       path,
+	}
+}
+
+type actionPathOverride struct {
+	HTTPMethod string
+	Path       string
 }
 
 func (opts *Options) setBinaryContentTypeMap() {
