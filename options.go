@@ -6,6 +6,7 @@ const (
 	RequestTypeAuto RequestType = iota
 	RequestTypeAPIGateway
 	RequestTypeALB
+	RequestTypeAPIGatewayWebsocket
 )
 
 // Options holds the optional parameters.
