@@ -11,6 +11,7 @@ type contextKey int
 const (
 	proxyRequestContextKey contextKey = iota
 	albRequestContextKey
+	wsgwRequestContextKey
 )
 
 func newProxyRequestContext(ctx context.Context, event events.APIGatewayProxyRequest) context.Context {
@@ -24,6 +25,20 @@ func ProxyRequestFromContext(ctx context.Context) (events.APIGatewayProxyRequest
 		return events.APIGatewayProxyRequest{}, false
 	}
 	event, ok := val.(events.APIGatewayProxyRequest)
+	return event, ok
+}
+
+func newWebsocketProxyRequestContext(ctx context.Context, event events.APIGatewayWebsocketProxyRequest) context.Context {
+	return context.WithValue(ctx, wsgwRequestContextKey, event)
+}
+
+// WebsocketProxyRequestFromContext extracts the APIGatewayProxyRequest event from ctx.
+func WebsocketProxyRequestFromContext(ctx context.Context) (events.APIGatewayWebsocketProxyRequest, bool) {
+	val := ctx.Value(wsgwRequestContextKey)
+	if val == nil {
+		return events.APIGatewayWebsocketProxyRequest{}, false
+	}
+	event, ok := val.(events.APIGatewayWebsocketProxyRequest)
 	return event, ok
 }
 

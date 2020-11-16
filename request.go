@@ -27,14 +27,25 @@ func newLambdaRequest(ctx context.Context, payload []byte, opts *Options) (lambd
 	switch opts.RequestType {
 	case RequestTypeAPIGateway:
 		return newAPIGatewayRequest(ctx, payload, opts)
+	case RequestTypeAPIGatewayWebsocket:
+		return newAPIGatewayWebsocketRequest(ctx, payload, opts)
 	case RequestTypeALB:
 		return newALBRequest(ctx, payload, opts)
 	}
 
 	// The request type wasn't specified.
-	// Try to decode the payload as APIGatewayProxyRequest, if it fails try ALBTargetGroupRequest.
+	// Try to decode the payload as APIGatewayProxyRequest, then APIGatewayWebsocketProxyRequest, if
+	// it fails try ALBTargetGroupRequest.
 	req, err := newAPIGatewayRequest(ctx, payload, opts)
 	if err != nil && err != errAPIGatewayUnexpectedRequest {
+		return lambdaRequest{}, err
+	}
+	if err == nil {
+		return req, nil
+	}
+
+	req, err = newAPIGatewayWebsocketRequest(ctx, payload, opts)
+	if err != nil && err != errAPIGatewayWebsocketUnexpectedRequest {
 		return lambdaRequest{}, err
 	}
 	if err == nil {
