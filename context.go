@@ -10,6 +10,7 @@ type contextKey int
 
 const (
 	proxyRequestContextKey contextKey = iota
+	apiGatewayV2HTTPRequestContextKey
 	albRequestContextKey
 )
 
@@ -24,6 +25,20 @@ func ProxyRequestFromContext(ctx context.Context) (events.APIGatewayProxyRequest
 		return events.APIGatewayProxyRequest{}, false
 	}
 	event, ok := val.(events.APIGatewayProxyRequest)
+	return event, ok
+}
+
+func newAPIGatewayV2HTTPRequestContext(ctx context.Context, event events.APIGatewayV2HTTPRequest) context.Context {
+	return context.WithValue(ctx, apiGatewayV2HTTPRequestContextKey, event)
+}
+
+// APIGatewayV2HTTPRequestFromContext extracts the APIGatewayV2HTTPRequest event from ctx.
+func APIGatewayV2HTTPRequestFromContext(ctx context.Context) (events.APIGatewayV2HTTPRequest, bool) {
+	val := ctx.Value(apiGatewayV2HTTPRequestContextKey)
+	if val == nil {
+		return events.APIGatewayV2HTTPRequest{}, false
+	}
+	event, ok := val.(events.APIGatewayV2HTTPRequest)
 	return event, ok
 }
 

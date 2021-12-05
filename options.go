@@ -5,6 +5,7 @@ type RequestType int
 const (
 	RequestTypeAuto RequestType = iota
 	RequestTypeAPIGateway
+	RequestTypeAPIGatewayV2
 	RequestTypeALB
 )
 
