@@ -3,6 +3,7 @@ package algnhsa
 import (
 	"encoding/base64"
 	"net/http/httptest"
+	"strings"
 )
 
 const acceptAllContentType = "*/*"
@@ -23,6 +24,10 @@ func newLambdaResponse(w *httptest.ResponseRecorder, binaryContentTypes map[stri
 
 	// Set headers.
 	event.MultiValueHeaders = w.Result().Header
+	event.Headers = make(map[string]string, len(w.Result().Header))
+	for key, values := range w.Result().Header {
+		event.Headers[key] = strings.Join(values, ",")
+	}
 
 	// Set body.
 	contentType := w.Header().Get("Content-Type")
