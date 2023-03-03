@@ -8,10 +8,6 @@ import (
 	"github.com/akrylysov/algnhsa"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("index"))
-}
-
 func addHandler(w http.ResponseWriter, r *http.Request) {
 	f, _ := strconv.Atoi(r.FormValue("first"))
 	s, _ := strconv.Atoi(r.FormValue("second"))
@@ -20,14 +16,13 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func contextHandler(w http.ResponseWriter, r *http.Request) {
-	proxyReq, ok := algnhsa.ProxyRequestFromContext(r.Context())
+	lambdaEvent, ok := algnhsa.APIGatewayV2RequestFromContext(r.Context())
 	if ok {
-		fmt.Fprint(w, proxyReq.RequestContext.AccountID)
+		fmt.Fprint(w, lambdaEvent.RequestContext.AccountID)
 	}
 }
 
-func Example() {
-	http.HandleFunc("/", indexHandler)
+func main() {
 	http.HandleFunc("/add", addHandler)
 	http.HandleFunc("/context", contextHandler)
 	algnhsa.ListenAndServe(http.DefaultServeMux, nil)
