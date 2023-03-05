@@ -8,52 +8,98 @@ algnhsa enables running Go web applications on AWS Lambda and API Gateway or ALB
 package main
 
 import (
-    "fmt"
-    "net/http"
-    "strconv"
+	"fmt"
+	"net/http"
+	"strconv"
 
-    "github.com/akrylysov/algnhsa"
+	"github.com/akrylysov/algnhsa"
 )
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
-    f, _ := strconv.Atoi(r.FormValue("first"))
-    s, _ := strconv.Atoi(r.FormValue("second"))
-    w.Header().Set("X-Hi", "foo")
-    fmt.Fprintf(w, "%d", f+s)
+	f, _ := strconv.Atoi(r.FormValue("first"))
+	s, _ := strconv.Atoi(r.FormValue("second"))
+	w.Header().Set("X-Hi", "foo")
+	fmt.Fprintf(w, "%d", f+s)
 }
 
 func contextHandler(w http.ResponseWriter, r *http.Request) {
-    lambdaEvent, ok := algnhsa.APIGatewayV2RequestFromContext(r.Context())
-    if ok {
-        fmt.Fprint(w, lambdaEvent.RequestContext.AccountID)
-    }
+	lambdaEvent, ok := algnhsa.APIGatewayV2RequestFromContext(r.Context())
+	if ok {
+		fmt.Fprint(w, lambdaEvent.RequestContext.AccountID)
+	}
 }
 
 func main() {
-    http.HandleFunc("/add", addHandler)
-    http.HandleFunc("/context", contextHandler)
-    algnhsa.ListenAndServe(http.DefaultServeMux, nil)
+	http.HandleFunc("/add", addHandler)
+	http.HandleFunc("/context", contextHandler)
+	algnhsa.ListenAndServe(http.DefaultServeMux, nil)
 }
 ```
 
-## Plug in a third-party HTTP router
+## Plug in a third-party web framework
+
+### Gin
 
 ```go
 package main
 
 import (
-    "net/http"
+	"net/http"
 
-    "github.com/akrylysov/algnhsa"
-    "github.com/go-chi/chi"
+	"github.com/akrylysov/algnhsa"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-    r := chi.NewRouter()
-    r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("hi"))
-    })
-    algnhsa.ListenAndServe(r, nil)
+	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "hi",
+		})
+	})
+	algnhsa.ListenAndServe(r, nil)
+}
+```
+
+### echo
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/akrylysov/algnhsa"
+	"github.com/labstack/echo/v4"
+)
+
+func main() {
+	e := echo.New()
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "hi")
+	})
+	algnhsa.ListenAndServe(e, nil)
+}
+```
+
+### chi
+
+```go
+package main
+
+import (
+	"net/http"
+
+	"github.com/akrylysov/algnhsa"
+	"github.com/go-chi/chi"
+)
+
+func main() {
+	r := chi.NewRouter()
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hi"))
+	})
+	algnhsa.ListenAndServe(r, nil)
 }
 ```
 
@@ -94,5 +140,3 @@ It only requires going to the "Function URL" section of the Lambda function conf
 1. Create a new ALB and point it to your Lambda function.
 
 2. In the target group settings in the "Attributes" section enable "Multi value headers".
-
-[AWS Documentation](https://docs.aws.amazon.com/lambda/latest/dg/services-alb.html)
