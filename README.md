@@ -103,6 +103,26 @@ func main() {
 }
 ```
 
+### Fiber
+
+```go
+package main
+
+import (
+	"github.com/akrylysov/algnhsa"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+)
+
+func main() {
+	app := fiber.New()
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World!")
+	})
+	algnhsa.ListenAndServe(adaptor.FiberApp(app), nil)
+}
+```
+
 ## Deployment
 
 First, build your Go application for Linux and zip it:
