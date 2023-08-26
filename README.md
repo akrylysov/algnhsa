@@ -128,9 +128,11 @@ func main() {
 First, build your Go application for Linux and zip it:
 
 ```bash
-GOOS=linux GOARCH=amd64 go build -o handler
-zip handler.zip handler
+GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o bootstrap
+zip function.zip bootstrap
 ```
+
+When creating a new function, choose the "Provide your own bootstrap on Amazon Linux 2" runtime or "Custom runtime on Amazon Linux 2" when modifying an existing function. Make sure to use `bootstrap` as the executable name and as the handler name in AWS.
 
 AWS provides plenty of ways to expose a Lambda function to the internet.
 
