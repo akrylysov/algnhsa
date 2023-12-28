@@ -1,4 +1,4 @@
-module github.com/akrylysov/algnhsa
+module github.com/acoover/algnhsa
 
 go 1.18
 

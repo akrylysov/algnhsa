@@ -1,4 +1,4 @@
-# algnhsa [![GoDoc](https://godoc.org/github.com/akrylysov/algnhsa?status.svg)](https://godoc.org/github.com/akrylysov/algnhsa) ![Build Status](https://github.com/akrylysov/algnhsa/actions/workflows/test.yaml/badge.svg)
+# algnhsa [![GoDoc](https://godoc.org/github.com/acoover/algnhsa?status.svg)](https://godoc.org/github.com/acoover/algnhsa) ![Build Status](https://github.com/acoover/algnhsa/actions/workflows/test.yaml/badge.svg)
 
 algnhsa is an AWS Lambda Go `net/http` server adapter.
 
@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/akrylysov/algnhsa"
+	"github.com/acoover/algnhsa"
 )
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/akrylysov/algnhsa"
+	"github.com/acoover/algnhsa"
 	"github.com/gin-gonic/gin"
 )
 
@@ -69,7 +69,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/akrylysov/algnhsa"
+	"github.com/acoover/algnhsa"
 	"github.com/labstack/echo/v4"
 )
 
@@ -90,7 +90,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/akrylysov/algnhsa"
+	"github.com/acoover/algnhsa"
 	"github.com/go-chi/chi"
 )
 
@@ -109,7 +109,7 @@ func main() {
 package main
 
 import (
-	"github.com/akrylysov/algnhsa"
+	"github.com/acoover/algnhsa"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 )
