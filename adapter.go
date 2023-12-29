@@ -60,12 +60,6 @@ func (handler lambdaHandler) handleEvent(ctx context.Context, payload []byte) (l
 
 // ListenAndServe starts the AWS Lambda runtime (aws-lambda-go lambda.Start) with a given handler.
 func ListenAndServe(handler http.Handler, opts *Options) {
-	if handler == nil {
-		handler = http.DefaultServeMux
-	}
-	if opts == nil {
-		opts = defaultOptions
-	}
-	opts.setBinaryContentTypeMap()
-	lambda.StartHandler(lambdaHandler{httpHandler: handler, opts: opts})
+	lambdaHandler := New(handler, opts)
+	lambda.StartHandler(lambdaHandler)
 }
