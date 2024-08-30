@@ -4,14 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 )
-
-// RequestTypeSQS
-// https://github.com/aws/aws-lambda-go/blob/v1.47.0/events/sqs.go
 
 var (
 	errSQSUnexpectedRequest = errors.New("expected SQSRequest event")
