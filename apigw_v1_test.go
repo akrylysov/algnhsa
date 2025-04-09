@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -315,4 +316,81 @@ func TestAPIGatewayV1Base64BodyResponseNoMatch(t *testing.T) {
 
 func TestAPIGatewayV1Base64BodyResponseMatch(t *testing.T) {
 	testBase64BodyResponseMatch(t, apiGatewayV1TestEvent)
+}
+
+func testBodyContentEncodingResponseAll(t *testing.T, event string) {
+	t.Helper()
+	asrt := assert.New(t)
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "Hello from Lambda!")
+	}
+	lh := lambdaHandler{
+		httpHandler: http.HandlerFunc(handler),
+		opts:        &Options{BinaryContentEncoding: []string{"*"}},
+	}
+	lh.opts.setBinaryContentTypeMap()
+	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
+	asrt.NoError(err)
+
+	var r lambdaResponse
+	err = json.Unmarshal(responseBytes, &r)
+	asrt.NoError(err)
+	asrt.Equal(200, r.StatusCode)
+	asrt.Equal("SGVsbG8gZnJvbSBMYW1iZGEh", r.Body)
+}
+
+func testBase64BodyContentEncodingResponseNoMatch(t *testing.T, event string) {
+	asrt := assert.New(t)
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "Hello from Lambda!")
+	}
+	lh := lambdaHandler{
+		httpHandler: http.HandlerFunc(handler),
+		opts:        &Options{BinaryContentEncoding: []string{"gzip"}},
+	}
+	lh.opts.setBinaryContentTypeMap()
+	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
+	asrt.NoError(err)
+
+	var r events.APIGatewayProxyResponse
+	err = json.Unmarshal(responseBytes, &r)
+	asrt.NoError(err)
+	asrt.Equal(200, r.StatusCode)
+	asrt.Equal("Hello from Lambda!", r.Body)
+}
+
+func testBase64BodyContentEncodingResponseMatch(t *testing.T, event string) {
+	asrt := assert.New(t)
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Encoding", "gzip")
+		io.WriteString(w, "Hello from Lambda!")
+	}
+	lh := lambdaHandler{
+		httpHandler: http.HandlerFunc(handler),
+		opts:        &Options{BinaryContentEncoding: []string{"gzip"}},
+	}
+	lh.opts.setBinaryContentTypeMap()
+	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
+	asrt.NoError(err)
+
+	var r events.APIGatewayProxyResponse
+	err = json.Unmarshal(responseBytes, &r)
+	asrt.NoError(err)
+	asrt.Equal(200, r.StatusCode)
+	asrt.Equal("SGVsbG8gZnJvbSBMYW1iZGEh", r.Body)
+}
+
+func TestAPIGatewayV1Base64BodyContentEncodingResponseAll(t *testing.T) {
+	testBodyContentEncodingResponseAll(t, apiGatewayV1TestEvent)
+}
+
+func TestAPIGatewayV1Base64BodyContentEncodingResponseNoMatch(t *testing.T) {
+	testBase64BodyContentEncodingResponseNoMatch(t, apiGatewayV1TestEvent)
+}
+
+func TestAPIGatewayV1Base64BodyContentEncodingResponseMatch(t *testing.T) {
+	testBase64BodyContentEncodingResponseMatch(t, apiGatewayV1TestEvent)
 }
