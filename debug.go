@@ -2,10 +2,11 @@ package algnhsa
 
 import (
 	"encoding/json"
-	"github.com/aws/aws-lambda-go/events"
 	"io"
 	"mime"
 	"net/http"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
 const maxDumpFormParseMem = 32 << 20 // 32MB
@@ -99,5 +100,4 @@ func RequestDebugDumpHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, err.Error())
 		return
 	}
-	return
 }
