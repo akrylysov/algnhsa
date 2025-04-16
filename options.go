@@ -20,6 +20,11 @@ type Options struct {
 	BinaryContentTypes   []string
 	binaryContentTypeMap map[string]bool
 
+	// BinaryContentEncoding sets the encoding for binary content.
+	// The "*" value makes algnhsa treat any content encoding as binary.
+	BinaryContentEncoding    []string
+	binaryContentEncodingMap map[string]bool
+
 	// Use API Gateway PathParameters["proxy"] when constructing the request url.
 	// Strips the base path mapping when using a custom domain with API Gateway.
 	UseProxyPath bool
@@ -34,4 +39,10 @@ func (opts *Options) setBinaryContentTypeMap() {
 		types[contentType] = true
 	}
 	opts.binaryContentTypeMap = types
+
+	encodings := map[string]bool{}
+	for _, encoding := range opts.BinaryContentEncoding {
+		encodings[encoding] = true
+	}
+	opts.binaryContentEncodingMap = encodings
 }

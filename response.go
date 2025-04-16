@@ -6,7 +6,10 @@ import (
 	"net/http/httptest"
 )
 
-const acceptAllContentType = "*/*"
+const (
+	acceptAllContentType     = "*/*"
+	acceptAllContentEncoding = "*"
+)
 
 var canonicalSetCookieHeaderKey = http.CanonicalHeaderKey("Set-Cookie")
 
@@ -21,7 +24,7 @@ type lambdaResponse struct {
 	IsBase64Encoded   bool                `json:"isBase64Encoded,omitempty"`
 }
 
-func newLambdaResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool, requestType RequestType) (lambdaResponse, error) {
+func newLambdaResponse(w *httptest.ResponseRecorder, binaryContentTypes map[string]bool, binaryContentEncoding map[string]bool, requestType RequestType) (lambdaResponse, error) {
 	result := w.Result()
 
 	var resp lambdaResponse
@@ -42,7 +45,8 @@ func newLambdaResponse(w *httptest.ResponseRecorder, binaryContentTypes map[stri
 
 	// Set body.
 	contentType := result.Header.Get("Content-Type")
-	if binaryContentTypes[acceptAllContentType] || binaryContentTypes[contentType] {
+	contentEncoding := result.Header.Get("Content-Encoding")
+	if binaryContentTypes[acceptAllContentType] || binaryContentTypes[contentType] || binaryContentEncoding[acceptAllContentEncoding] || binaryContentEncoding[contentEncoding] {
 		resp.Body = base64.StdEncoding.EncodeToString(w.Body.Bytes())
 		resp.IsBase64Encoded = true
 	} else {

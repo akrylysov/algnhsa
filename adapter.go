@@ -55,7 +55,7 @@ func (handler lambdaHandler) handleEvent(ctx context.Context, payload []byte) (l
 	}
 	w := httptest.NewRecorder()
 	handler.httpHandler.ServeHTTP(w, r)
-	return newLambdaResponse(w, handler.opts.binaryContentTypeMap, eventReq.requestType)
+	return newLambdaResponse(w, handler.opts.binaryContentTypeMap, handler.opts.binaryContentEncodingMap, eventReq.requestType)
 }
 
 // ListenAndServe starts the AWS Lambda runtime (aws-lambda-go lambda.Start) with a given handler.
