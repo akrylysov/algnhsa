@@ -252,7 +252,7 @@ func testBodyResponseAll(t *testing.T, event string) {
 		httpHandler: http.HandlerFunc(handler),
 		opts:        &Options{BinaryContentTypes: []string{"*/*"}},
 	}
-	lh.opts.setBinaryContentTypeMap()
+	lh.opts.init()
 	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
 	asrt.NoError(err)
 
@@ -273,7 +273,7 @@ func testBase64BodyResponseNoMatch(t *testing.T, event string) {
 		httpHandler: http.HandlerFunc(handler),
 		opts:        &Options{BinaryContentTypes: []string{"image/png"}},
 	}
-	lh.opts.setBinaryContentTypeMap()
+	lh.opts.init()
 	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
 	asrt.NoError(err)
 
@@ -295,7 +295,7 @@ func testBase64BodyResponseMatch(t *testing.T, event string) {
 		httpHandler: http.HandlerFunc(handler),
 		opts:        &Options{BinaryContentTypes: []string{"image/png"}},
 	}
-	lh.opts.setBinaryContentTypeMap()
+	lh.opts.init()
 	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
 	asrt.NoError(err)
 
@@ -327,9 +327,9 @@ func testBodyContentEncodingResponseAll(t *testing.T, event string) {
 	}
 	lh := lambdaHandler{
 		httpHandler: http.HandlerFunc(handler),
-		opts:        &Options{BinaryContentEncoding: []string{"*"}},
+		opts:        &Options{BinaryContentEncodings: []string{"*"}},
 	}
-	lh.opts.setBinaryContentTypeMap()
+	lh.opts.init()
 	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
 	asrt.NoError(err)
 
@@ -348,9 +348,9 @@ func testBase64BodyContentEncodingResponseNoMatch(t *testing.T, event string) {
 	}
 	lh := lambdaHandler{
 		httpHandler: http.HandlerFunc(handler),
-		opts:        &Options{BinaryContentEncoding: []string{"gzip"}},
+		opts:        &Options{BinaryContentEncodings: []string{"gzip"}},
 	}
-	lh.opts.setBinaryContentTypeMap()
+	lh.opts.init()
 	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
 	asrt.NoError(err)
 
@@ -370,9 +370,9 @@ func testBase64BodyContentEncodingResponseMatch(t *testing.T, event string) {
 	}
 	lh := lambdaHandler{
 		httpHandler: http.HandlerFunc(handler),
-		opts:        &Options{BinaryContentEncoding: []string{"gzip"}},
+		opts:        &Options{BinaryContentEncodings: []string{"gzip"}},
 	}
-	lh.opts.setBinaryContentTypeMap()
+	lh.opts.init()
 	responseBytes, err := lh.Invoke(context.Background(), []byte(event))
 	asrt.NoError(err)
 
