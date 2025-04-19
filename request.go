@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var errUnsupportedPayloadFormat = errors.New("unsupported payload format; supported formats: APIGatewayV2HTTPRequest, APIGatewayProxyRequest, ALBTargetGroupRequest")
+var errUnsupportedPayloadFormat = errors.New("unsupported payload format; supported formats: APIGatewayV2HTTPRequest, APIGatewayProxyRequest, ALBTargetGroupRequest, SQSEvent")
 
 type lambdaRequest struct {
 	HTTPMethod                      string
@@ -35,10 +35,12 @@ func newLambdaRequest(ctx context.Context, payload []byte, opts *Options) (lambd
 		return newAPIGatewayV2Request(ctx, payload, opts)
 	case RequestTypeALB:
 		return newALBRequest(ctx, payload, opts)
+	case RequestTypeSQS:
+		return newSQSRequest(ctx, payload, opts)
 	}
 
 	// The request type wasn't specified.
-	// Try to decode the payload as APIGatewayV2HTTPRequest, fall back to APIGatewayProxyRequest, then ALBTargetGroupRequest.
+	// Try to decode the payload as APIGatewayV2HTTPRequest, fall back to APIGatewayProxyRequest, then ALBTargetGroupRequest, then SQSRequest.
 	req, err := newAPIGatewayV2Request(ctx, payload, opts)
 	if err != nil && err != errAPIGatewayV2UnexpectedRequest {
 		return lambdaRequest{}, err
@@ -63,6 +65,13 @@ func newLambdaRequest(ctx context.Context, payload []byte, opts *Options) (lambd
 		return req, nil
 	}
 
+	req, err = newSQSRequest(ctx, payload, opts)
+	if err != nil && err != errSQSUnexpectedRequest {
+		return lambdaRequest{}, err
+	}
+	if err == nil {
+		return req, nil
+	}
 	return lambdaRequest{}, errUnsupportedPayloadFormat
 }
 

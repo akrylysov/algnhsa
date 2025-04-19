@@ -36,6 +36,8 @@ func newLambdaResponse(w *httptest.ResponseRecorder, opts *Options, requestType 
 		resp, err = newALBResponse(result)
 	case RequestTypeAPIGatewayV2:
 		resp, err = newAPIGatewayV2Response(result)
+	case RequestTypeSQS:
+		resp, err = newSQSResponse(result)
 	}
 	if err != nil {
 		return resp, err

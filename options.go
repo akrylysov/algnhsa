@@ -7,6 +7,7 @@ const (
 	RequestTypeAPIGatewayV1
 	RequestTypeAPIGatewayV2
 	RequestTypeALB
+	RequestTypeSQS
 )
 
 type set[T comparable] struct {
